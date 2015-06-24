@@ -63,7 +63,7 @@
     (clientB "* Client B" "franz@clientb.fr" nil))
   "Alist of clients consisting of KEY, regular expression to find a HEADING
 for the subtree to export, TO: field for email message, CC: field of email message."
-  :type '(editable-list)
+  :type '(string)
   :group 'org-report)
 
 (defcustom default-sources-targets
@@ -71,7 +71,7 @@ for the subtree to export, TO: field for email message, CC: field of email messa
     (sales "/home/strey/GTD/salesprojects.org" "/tmp/" "sales_projects"))
   "Alist defining sources and targets for the various reports
 KEY, Orgmode SOURCE, target PATH, target FILE_NAME."
-  :type '(editable-list)
+  :type '(string)
   :group 'org-report)
 
 (defcustom default-periods
@@ -79,7 +79,7 @@ KEY, Orgmode SOURCE, target PATH, target FILE_NAME."
   "Periods of time to create reports for.  NIL stands for a complete report.
 DEFAULT takes the start date from property :EXPORT_DATE: and uses today's date
 as end date.  If DEFAULT is used, it must be the first entry in the list."
-  :type '(editable-list)
+  :type '(string)
   :group 'org-report)
 
 (defcustom default-subject
@@ -87,7 +87,7 @@ as end date.  If DEFAULT is used, it must be the first entry in the list."
   "Subject that shall be used in the email message header.
 %s will be replaced by the date of today."
   :type '(string)
-  :group 'org-report))
+  :group 'org-report)
 
 (defun org-report-iso-date-to-string (iso-date)
   "Convert a string with ISO-DATE of the form \"2015-06-10\" into a string
