@@ -1,3 +1,5 @@
+;;; -*- lexical-binding: t; -*-
+
 ;;; org-report.el --- Generate status reports from Org mode files
 
 ;; Copyright (C) 2015  Michael Strey
@@ -25,83 +27,109 @@
 ;; from a designated subtree as differential reports made over a
 ;; period of time of the same subtree.
 
-;; Caveats:
+;; Requirements:
 
-;; Files in SOURCES_TARGETS must be Org mode files containing sections
+;; Files in SOURCES-TARGETS must be Org mode files containing sections
 ;; named according to HEADING in CLIENTS.  The program expects a
 ;; property field :EXPORT_DATE: in the respective subtree.
 
-;;; Code:
+;; Example of usage:
+
+;; With the default values for CLIENTS and SOURCES-TARGETS, the
+;; following function call will generate six reports exporting the
+;; subtrees for client A from files customers.org and
+;; sales_projects.org for three periods: all changes since the last
+;; report (DEFAULT), complete subtree export, all changes made to the
+;; subtree in June 2015.  Finally it will create an email message
+;; buffer with an email addressed to the persons to report to.
+
+;; (org-report-create-report-message
+;;  'clientA default-clients '(leads sales) default-sources-targets
+;;  '(default nil '("2015-06-01" "2015-06-31")) 
+;;  "Dear Mr. Kim,\n\nPlease find attached my weekly reports.\n\n
+;; Best regards\nMichael Strey\n\n")
+;;
 
 (require 'org)
+
+;;; Code:
 
 (defgroup org-report nil
   "Options about automatic report generation."
   :group 'org)
 
-(defcustom *clients*
-  '((Glovane "* Glovane" "yeounggyu.kim@glovane.com" "sales_@glovane.com")
-    (Actia "* ACTIA" "f.desclaux@actiatelecom.fr" nil))
-  "alist of clients consisting of KEY, regular expression to find a HEADING
-for the subtree to export, TO: field for email message, CC: field of email message"
+(defcustom default-clients
+  '((clientA "* Client A" "kim@clienta.com" "sales_@clienta.com")
+    (clientB "* Client B" "franz@clientb.fr" nil))
+  "Alist of clients consisting of KEY, regular expression to find a HEADING
+for the subtree to export, TO: field for email message, CC: field of email message."
   :type '(editable-list)
   :group 'org-report)
-  )
 
-(defcustom *sources_targets*
+(defcustom default-sources-targets
   '((leads "/home/strey/GTD/customers.org" "/tmp/" "leads")
     (sales "/home/strey/GTD/salesprojects.org" "/tmp/" "sales_projects"))
-  "alist defining sources and targets for the various reports
-KEY, Orgmode SOURCE, target PATH, target FILE_NAME"
+  "Alist defining sources and targets for the various reports
+KEY, Orgmode SOURCE, target PATH, target FILE_NAME."
   :type '(editable-list)
   :group 'org-report)
-  )
 
-(defcustom *periods*
-  '(default nil ("2015-06-11" "2015-06-21"))
-  "Periods of time to create reports for.  NIL stands for a complete report."
+(defcustom default-periods
+  '(default nil)
+  "Periods of time to create reports for.  NIL stands for a complete report.
+DEFAULT takes the start date from property :EXPORT_DATE: and uses today's date
+as end date.  If DEFAULT is used, it must be the first entry in the list."
   :type '(editable-list)
   :group 'org-report)
-  )
 
-(defun ms-iso-date-to-string (iso-date)
+(defcustom default-subject
+  "Report from %s"
+  "Subject that shall be used in the email message header.
+%s will be replaced by the date of today."
+  :type '(string)
+  :group 'org-report))
+
+(defun org-report-iso-date-to-string (iso-date)
   "Convert a string with ISO-DATE of the form \"2015-06-10\" into a string
-of the form \"150610\" for use in file names"
+of the form \"150610\" for use in file names."
   (format-time-string "%y%m%d" (org-time-string-to-time iso-date)))
 
-(defun ms-create-target-file-name (report period)
-  "Create a file name from a list of report parameters"
+(defun org-report-create-target-file-name (report period)
+  "Create a file name from the list REPORT of report parameters.
+PERIOD is a list consisting of a pair of start date and end date
+overriding the period entry in the REPORT list."
   (let ((path (cadddr report))
         (radical (nth 4 report))
         (heading (downcase (cadr (split-string (cadr report))))))
     (concat path "rep-"  radical "_" heading
             (when period
               (concat "-"
-                      (ms-iso-date-to-string (car period)) "_"
-                      (ms-iso-date-to-string (cadr period)))))))
+                      (org-report-iso-date-to-string (car period)) "_"
+                      (org-report-iso-date-to-string (cadr period)))))))
 
-(defun ms-day-before (iso-date)
+(defun org-report-day-before (iso-date)
   "Return an orgmode time stamp of the day before the given ISO-DATE."
   (format-time-string "%Y-%m-%d %a"
                       (time-subtract (org-time-string-to-time iso-date)
                                      (seconds-to-time 86400))))
 
-(defun ms-day-after (iso-date)
+(defun org-report-day-after (iso-date)
   "Return an orgmode time stamp of the day before the given ISO-DATE."
   (format-time-string "%Y-%m-%d %a"
                       (time-add (org-time-string-to-time iso-date)
                                      (seconds-to-time 86400))))
 
-(defun ms-export-report (report)
+(defun org-report-export-report (report)
   "Export one report.
 
 REPORT is a list of parameters describing a report consisting of:
-- PERIOD is a period of time defined by a list of start-date end-date or nil resp..
+- PERIOD is a period of time defined by a list of start-date end-date
+  or nil resp..
 - SOURCE is the name of the orgmode source file.
 - PATH is the output path for the target file.
 - FILE_NAME is a string to construct the target file name with.
-- SUBTREE is a string containing a regular expression to find the heading of
-the subtree to export."
+- SUBTREE is a string containing a regular expression to find
+  the heading of the subtree to export."
   (let* ((period (car report))
          (subtree (cadr report))
          (source-file-name (caddr report)))
@@ -115,69 +143,98 @@ the subtree to export."
     (org-entry-put (point) "EXPORT_DATE" today)
     (when period
       (when (eq period 'default)
-        (setq period (cons (ms-day-before last_date) (cons (ms-day-after today) nil))))
+        (setq period
+              (cons (org-report-day-before last_date)
+                    (cons (org-report-day-after today) nil))))
       (org-check-dates-range (car period) (cadr period)))
     (goto-char (point-min))
     (re-search-forward subtree)
-    (setq target-file-name (ms-create-target-file-name report period))
+    (setq target-file-name (org-report-create-target-file-name report period))
     (setq outfile (concat target-file-name ".tex"))
     (org-export-to-file 'latex outfile
       nil t period nil nil
-      (lambda (file) (org-latex-compile file)))
-    )
+      (lambda (file) (org-latex-compile file))))
   (concat target-file-name ".pdf")))
          
-(defun ms-make-reports-list (keylist sources_targets subtree periods)
+(defun org-report-make-reports-list (keylist sources-targets subtree periods)
   "Create a list of lists, where each list is describing one report (PDF file)
 with the following keys:
 
-- PERIOD is a period of time defined by a list of start-date end-date or nil resp..
-- SUBTREE is a string containing a regular expression to find the heading of
-- SOURCE is the name of the orgmode source file.
-the subtree to export.
-- PATH is the output path for the target file.
-- FILE_NAME is a string to construct the target file name with."
+- KEYLIST is a list of keys to chose entries of the alist SOURCES-TARGETS.
+- SUBTREE is a string containing a regular expression to find
+  the heading of the subtree to export.
+- PERIODS is a list of periods of time defined by a list of start-date end-date
+  or NIL respectively."
   (let ((sources (mapcar (lambda (key)
-                           (assoc key sources_targets))
+                           (assoc key sources-targets))
                          keylist)))  
     (-flatten-n 1
                 (mapcar
-                 (lambda (source_target)
+                 (lambda (source-target)
                    (mapcar (lambda (period)
-                             (cons period (cons subtree (cdr source_target))))
+                             (cons period (cons subtree (cdr source-target))))
                            periods))
                  sources))))
 
-(defun ms-create-report-message (client clients keylist sources_targets periods body)
-  "Create a message with an attached list of PDF reports exported from files in sources.
+(defun org-report-create-reports
+    (client keylist &optional clients sources-targets periods)
+  "Create a set of PDF reports exported according to the rules defined by the
+function parameters.
 
 CLIENT is a symbol to chose a set of client specific parameters from the alist CLIENTS.
 KEYLIST is a list of keys to chose the reports to be exported from the alist
-SOURCES_TARGETS.
+SOURCES-TARGETS.
 PERIODS is a list of time periods to restrict the outputs to given periods of time.
 NIL in this list causes a complete report without time constraints, 
 DEFAULT creates a report starting one day before the last EXPORT_DATE and ending today. 
-Take care that DEFAULT is the first element of the list, since EXPORT_DATE will be set to 
-today's date as side effect of function MS-EXPORT-REPORT."
+Take care that DEFAULT is the first element of the list, since EXPORT_DATE will
+be set to today's date as side effect of function ORG-REPORT-EXPORT-REPORT."
+  (let* ((clients (or clients default-clients))
+         (sources-targets (or sources-targets default-sources-targets))
+         (periods (or periods default-periods))
+         (subject (or subject default-subject))
+         (clientlist (assoc client clients))
+         (subtree (cadr clientlist))
+         (reports
+          (org-report-make-reports-list keylist sources-targets subtree periods)))
+    (dolist (report reports) (org-report-export-report report))))
+
+(defun org-report-create-report-message
+    (client keylist &optional clients sources-targets periods body subject)
+  "Create an email message with an attached list of PDF reports exported according
+to the rules defined by the function parameters.
+
+CLIENT is a symbol to chose a set of client specific parameters from the alist CLIENTS.
+KEYLIST is a list of keys to chose the reports to be exported from the alist
+SOURCES-TARGETS.
+PERIODS is a list of time periods to restrict the outputs to given periods of time.
+NIL in this list causes a complete report without time constraints, 
+DEFAULT creates a report starting one day before the last EXPORT_DATE and ending today. 
+Take care that DEFAULT is the first element of the list, since EXPORT_DATE will
+be set to today's date as side effect of function ORG-REPORT-EXPORT-REPORT.
+BODY is a string containing the email body.
+SUBJECT is a string that shall be used in the email message header.
+%s used in this string will be replaced by the date of today."
   (let* ((today (current-time-string))
+         (clients (or clients default-clients))
+         (sources-targets (or sources-targets default-sources-targets))
+         (periods (or periods default-periods))
+         (subject (or subject default-subject))
          (clientlist (assoc client clients))
          (subtree (cadr clientlist))
          (to (caddr clientlist))
          (cc (cadddr clientlist))
-         (reports (ms-make-reports-list keylist sources_targets subtree periods)))
+         (reports
+          (org-report-make-reports-list keylist sources-targets subtree periods)))
     (compose-mail
      to
-     (format "Weekly report %s" today)
+     (format subject today)
      (when cc
        (cons (cons "Cc" cc) nil)))
     (message-goto-body)
-    (insert body)
-    (dolist (report reports) (mml-attach-file (ms-export-report report)))
-    ))
-
-(ms-create-report-message 'Glovane *clients* '(leads sales) *sources_targets* '(default nil) 
-                          "Dear Mr. Kim,\n\nPlease find attached my weekly reports.\n\nBest regards\nMichael Strey\n\n")
- #+end_src
+    (when body
+      (insert body))
+    (dolist (report reports) (mml-attach-file (org-report-export-report report)))))
 
 (provide 'org-report)
 

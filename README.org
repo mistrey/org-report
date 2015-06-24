@@ -1,2 +1,54 @@
-# org-report
+* org-report
 Generate activity reports from Emacs Org mode
+
+** Caveats
+This package works-for-me (TM).  It requires several boundary conditions and does not contain all required tests to make sure that all of them are given.
+
+Some conventions according to my personal taste are hard coded.  You may want to tweak the code to fit your personal needs.
+
+** Motivation
+   I am working as sales representative for several companies and have to provide regular activity reports to my principals (called CLIENTS in the code).  I keep my notes with journal entries about phone calls, emails, received orders etc. in two Org mode files, one for sales projects and one for the running maintenance of leads and customers.  In each of these files I have one main heading for every client.
+
+   My first attempt to satisfy my principals was to export the complete sub-tree to PDF and send this file by email.  Because of the file was growing larger and larger over the time, it became bulky and my principals complained about not being able to identify the activities of last week in my weekly reports.  Thus I decided to provide differential reports made using the sparse-tree functionality of Org mode in addition to the comprehensive full reports.
+
+The here present package was made to automatize all tasks in conjunction with this reporting task:
+- export the full report,
+- export a report between the last export date and today,
+- export an optional report for an explicitly given period of time,
+- name the reports according to the periods they comprise,
+- prepare an email to the principal.
+
+** Requirements
+
+Files in SOURCES-TARGETS must be Org mode files containing sub-trees
+named according to HEADING in CLIENTS.  The program expects a
+property field :EXPORT_DATE: in the respective sub-tree.
+
+** Example of use
+
+With the default values for CLIENTS and SOURCES-TARGETS, the
+following function call will generate six reports exporting the
+subtrees for client A from files customers.org and
+sales_projects.org for three periods respectively:
+- all changes since the last report (DEFAULT), 
+- complete subtree export, 
+- all changes made to the subtree in June 2015.  
+
+Finally it will create an email message
+buffer addressed to the persons to report to.
+
+#+begin_src emacs-lisp
+(org-report-create-report-message
+ 'clientA '(leads sales) default-clients default-sources-targets
+ '(default nil '("2015-06-01" "2015-06-31")) 
+ "Dear Mr. Kim,\n\nPlease find attached my weekly reports.\n\n
+Best regards\nMichael Strey\n\n")
+#+end_src
+
+The next example will create all PDF reports for client B from two source files according to the default settings.  No email buffer will be prepared.
+
+#+begin_src emacs-lisp
+(org-report-create-reports 'clientB '(leads sales))
+#+end_src
+
+  
