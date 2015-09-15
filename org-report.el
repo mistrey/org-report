@@ -44,7 +44,7 @@
 ;; buffer with an email addressed to the persons to report to.
 
 ;; (org-report-create-report-message
-;;  'clientA default-clients '(leads sales) default-sources-targets
+;;  'clientA org-report-clients '(leads sales) org-report-sources-targets
 ;;  '(default nil '("2015-06-01" "2015-06-31")) 
 ;;  "Dear Mr. Kim,\n\nPlease find attached my weekly reports.\n\n
 ;; Best regards\nMichael Strey\n\n")
@@ -58,7 +58,7 @@
   "Options about automatic report generation."
   :group 'org)
 
-(defcustom default-clients
+(defcustom org-report-clients
   '((clientA "* Client A" "kim@clienta.com" "sales_@clienta.com")
     (clientB "* Client B" "franz@clientb.fr" nil))
   "Alist of clients consisting of KEY, regular expression to find a HEADING
@@ -66,7 +66,7 @@ for the subtree to export, TO: field for email message, CC: field of email messa
   :type '(string)
   :group 'org-report)
 
-(defcustom default-sources-targets
+(defcustom org-report-sources-targets
   '((leads "/home/strey/GTD/customers.org" "/tmp/" "leads")
     (sales "/home/strey/GTD/salesprojects.org" "/tmp/" "sales_projects"))
   "Alist defining sources and targets for the various reports
@@ -74,7 +74,7 @@ KEY, Orgmode SOURCE, target PATH, target FILE_NAME."
   :type '(string)
   :group 'org-report)
 
-(defcustom default-periods
+(defcustom org-report-periods
   '(default nil)
   "Periods of time to create reports for.  NIL stands for a complete report.
 DEFAULT takes the start date from property :EXPORT_DATE: and uses today's date
@@ -82,7 +82,7 @@ as end date.  If DEFAULT is used, it must be the first entry in the list."
   :type '(string)
   :group 'org-report)
 
-(defcustom default-subject
+(defcustom org-report-subject
   "Report from %s"
   "Subject that shall be used in the email message header.
 %s will be replaced by the date of today."
@@ -189,10 +189,10 @@ NIL in this list causes a complete report without time constraints,
 DEFAULT creates a report starting one day before the last EXPORT_DATE and ending today. 
 Take care that DEFAULT is the first element of the list, since EXPORT_DATE will
 be set to today's date as side effect of function ORG-REPORT-EXPORT-REPORT."
-  (let* ((clients (or clients default-clients))
-         (sources-targets (or sources-targets default-sources-targets))
-         (periods (or periods default-periods))
-         (subject (or subject default-subject))
+  (let* ((clients (or clients org-report-clients))
+         (sources-targets (or sources-targets org-report-sources-targets))
+         (periods (or periods org-report-periods))
+         (subject (or subject org-report-subject))
          (clientlist (assoc client clients))
          (subtree (cadr clientlist))
          (reports
@@ -216,10 +216,10 @@ BODY is a string containing the email body.
 SUBJECT is a string that shall be used in the email message header.
 %s used in this string will be replaced by the date of today."
   (let* ((today (current-time-string))
-         (clients (or clients default-clients))
-         (sources-targets (or sources-targets default-sources-targets))
-         (periods (or periods default-periods))
-         (subject (or subject default-subject))
+         (clients (or clients org-report-clients))
+         (sources-targets (or sources-targets org-report-sources-targets))
+         (periods (or periods org-report-periods))
+         (subject (or subject org-report-subject))
          (clientlist (assoc client clients))
          (subtree (cadr clientlist))
          (to (caddr clientlist))
