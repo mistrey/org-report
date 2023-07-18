@@ -45,7 +45,7 @@
 
 ;; (org-report-create-report-message
 ;;  'clientA org-report-clients '(leads sales) org-report-sources-targets
-;;  '(default nil '("2015-06-01" "2015-06-31")) 
+;;  '(default nil '("2015-06-01" "2015-06-31"))
 ;;  "Dear Mr. Kim,\n\nPlease find attached my weekly reports.\n\n
 ;; Best regards\nMichael Strey\n\n")
 ;;
@@ -67,8 +67,8 @@ for the subtree to export, TO: field for email message, CC: field of email messa
   :group 'org-report)
 
 (defcustom org-report-sources-targets
-  '((leads "/home/strey/GTD/customers.org" "/tmp/" "leads")
-    (sales "/home/strey/GTD/salesprojects.org" "/tmp/" "sales_projects"))
+  '((leads "~/org/customers.org" "/tmp/" "leads")
+    (sales "~/org/salesprojects.org" "/tmp/" "sales_projects"))
   "Alist defining sources and targets for the various reports
 KEY, Orgmode SOURCE, target PATH, target FILE_NAME."
   :type '(string)
@@ -155,7 +155,7 @@ REPORT is a list of parameters describing a report consisting of:
       nil t period nil nil
       (lambda (file) (org-latex-compile file))))
   (concat target-file-name ".pdf")))
-         
+
 (defun org-report-make-reports-list (keylist sources-targets subtree periods)
   "Create a list of lists, where each list is describing one report (PDF file)
 with the following keys:
@@ -167,7 +167,7 @@ with the following keys:
   or NIL respectively."
   (let ((sources (mapcar (lambda (key)
                            (assoc key sources-targets))
-                         keylist)))  
+                         keylist)))
     (-flatten-n 1
                 (mapcar
                  (lambda (source-target)
@@ -185,8 +185,8 @@ CLIENT is a symbol to chose a set of client specific parameters from the alist C
 KEYLIST is a list of keys to chose the reports to be exported from the alist
 SOURCES-TARGETS.
 PERIODS is a list of time periods to restrict the outputs to given periods of time.
-NIL in this list causes a complete report without time constraints, 
-DEFAULT creates a report starting one day before the last EXPORT_DATE and ending today. 
+NIL in this list causes a complete report without time constraints,
+DEFAULT creates a report starting one day before the last EXPORT_DATE and ending today.
 Take care that DEFAULT is the first element of the list, since EXPORT_DATE will
 be set to today's date as side effect of function ORG-REPORT-EXPORT-REPORT."
   (let* ((clients (or clients org-report-clients))
@@ -208,8 +208,8 @@ CLIENT is a symbol to chose a set of client specific parameters from the alist C
 KEYLIST is a list of keys to chose the reports to be exported from the alist
 SOURCES-TARGETS.
 PERIODS is a list of time periods to restrict the outputs to given periods of time.
-NIL in this list causes a complete report without time constraints, 
-DEFAULT creates a report starting one day before the last EXPORT_DATE and ending today. 
+NIL in this list causes a complete report without time constraints,
+DEFAULT creates a report starting one day before the last EXPORT_DATE and ending today.
 Take care that DEFAULT is the first element of the list, since EXPORT_DATE will
 be set to today's date as side effect of function ORG-REPORT-EXPORT-REPORT.
 BODY is a string containing the email body.
